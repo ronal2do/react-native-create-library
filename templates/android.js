@@ -1,7 +1,6 @@
 module.exports = platform => [{
   name: () => `${platform}/build.gradle`,
-  content: ({ packageIdentifier }) => `
-buildscript {
+  content: ({ packageIdentifier }) => `buildscript {
     repositories {
         jcenter()
     }
@@ -16,19 +15,28 @@ buildscript {
 apply plugin: 'com.android.library'
 apply plugin: 'maven'
 
-android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.1"
+def safeExtGet(prop, fallback) {
+    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
 
-    defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 22
-        versionCode 1
-        versionName "1.0"
-    }
-    lintOptions {
-        abortOnError false
-    }
+def DEFAULT_COMPILE_SDK_VERSION = 27
+def DEFAULT_BUILD_TOOLS_VERSION = "27.0.3"
+def DEFAULT_MIN_SDK_VERSION = 16
+def DEFAULT_TARGET_SDK_VERSION = 27
+
+android {
+  compileSdkVersion safeExtGet('compileSdkVersion', DEFAULT_COMPILE_SDK_VERSION)
+  buildToolsVersion safeExtGet('buildToolsVersion', DEFAULT_BUILD_TOOLS_VERSION)
+
+  defaultConfig {
+    minSdkVersion safeExtGet('minSdkVersion', DEFAULT_MIN_SDK_VERSION)
+    targetSdkVersion safeExtGet('targetSdkVersion', DEFAULT_TARGET_SDK_VERSION)
+    versionCode 1
+    versionName "1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
 }
 
 repositories {
@@ -115,20 +123,18 @@ afterEvaluate { project ->
         }
     }
 }
-  `,
+`,
 }, {
   name: () => `${platform}/src/main/AndroidManifest.xml`,
-  content: ({ packageIdentifier }) => `
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  content: ({ packageIdentifier }) => `<manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="${packageIdentifier}">
 
 </manifest>
-  `,
+`,
 }, {
   name: ({ packageIdentifier, name }) =>
     `${platform}/src/main/java/${packageIdentifier.split('.').join('/')}/${name}Module.java`,
-  content: ({ packageIdentifier, name }) => `
-package ${packageIdentifier};
+  content: ({ packageIdentifier, name }) => `package ${packageIdentifier};
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -137,23 +143,27 @@ import com.facebook.react.bridge.Callback;
 
 public class ${name}Module extends ReactContextBaseJavaModule {
 
-  private final ReactApplicationContext reactContext;
+    private final ReactApplicationContext reactContext;
 
-  public ${name}Module(ReactApplicationContext reactContext) {
-    super(reactContext);
-    this.reactContext = reactContext;
-  }
+    public ${name}Module(ReactApplicationContext reactContext) {
+        super(reactContext);
+        this.reactContext = reactContext;
+    }
 
-  @Override
-  public String getName() {
-    return "${name}";
-  }
+    @Override
+    public String getName() {
+        return "${name}";
+    }
+
+    @ReactMethod
+    public void sampleMethod(String stringArgument, int numberArgument, Callback callback) {
+        // TODO: Implement
+    }
 }`,
 }, {
   name: ({ packageIdentifier, name }) =>
     `${platform}/src/main/java/${packageIdentifier.split('.').join('/')}/${name}Package.java`,
-  content: ({ packageIdentifier, name }) => `
-package ${packageIdentifier};
+  content: ({ packageIdentifier, name }) => `package ${packageIdentifier};
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -167,23 +177,23 @@ import com.facebook.react.bridge.JavaScriptModule;
 public class ${name}Package implements ReactPackage {
     @Override
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
-      return Arrays.<NativeModule>asList(new ${name}Module(reactContext));
+        return Arrays.<NativeModule>asList(new ${name}Module(reactContext));
     }
 
     // Deprecated from RN 0.47
     public List<Class<? extends JavaScriptModule>> createJSModules() {
-      return Collections.emptyList();
+        return Collections.emptyList();
     }
 
     @Override
     public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
-      return Collections.emptyList();
+        return Collections.emptyList();
     }
-}`,
+}
+`,
 }, {
   name: () => `${platform}/README.md`,
-  content: () => `
-README
+  content: () => `README
 ======
 
 If you want to publish the lib as a maven dependency, follow these steps before publishing a new version to npm:
@@ -197,4 +207,5 @@ sdk.dir=/Users/{username}/Library/Android/sdk
 3. Delete the \`maven\` folder
 4. Run \`sudo ./gradlew installArchives\`
 5. Verify that latest set of generated files is in the maven folder with the correct version number
-`}];
+`
+}];
